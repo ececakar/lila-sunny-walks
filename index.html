@@ -56,6 +56,7 @@ button{font:inherit;color:inherit;background:var(--card);border:1px solid var(--
 .chip.lo{color:var(--bad);border-color:currentColor}
 .metrics{font-size:12.5px;color:var(--muted);margin-top:6px}
 .flag{font-size:12px;color:var(--bad);margin-top:4px}
+.why{font-size:12px;color:var(--ink);margin-top:6px;padding-top:6px;border-top:1px dashed var(--line)}
 .models{font-size:12px;margin-top:6px}
 .sec{margin-top:16px}
 .sec h2{font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin:0 0 6px}
@@ -218,13 +219,13 @@ function analyse(models, nowLocal, cfg = CONFIG) {
       if (isNum(code) && code >= 95) { comfort = 0; flags.push("thunderstorm risk"); }
       if ((isNum(precip) && precip >= 0.5) || (isNum(prob) && prob >= 60)) { comfort *= 0.15; flags.push("rain likely"); }
       else if ((isNum(precip) && precip >= 0.1) || (isNum(prob) && prob >= 35)) { comfort *= 0.5; flags.push("showers possible"); }
-      else if (isNum(prob) && prob >= 20) comfort *= 0.85;
+      else if (isNum(prob) && prob >= 20) { comfort *= 0.85; flags.push(Math.round(prob) + "% rain chance"); }
       if (isNum(gust) && gust >= 65) { comfort = 0; flags.push("dangerous gusts"); }
       else if (isNum(gust) && gust >= 50) { comfort *= 0.6; flags.push("strong gusts"); }
-      else if (isNum(gust) && gust >= 40) comfort *= 0.9;
+      else if (isNum(gust) && gust >= 40) { comfort *= 0.9; flags.push("gusts to " + Math.round(gust) + " km/h"); }
       if (isNum(feels) && feels >= 34) { comfort = 0; flags.push("too hot for Lila"); }
       else if (isNum(feels) && feels >= 30) { comfort *= 0.6; flags.push("hot: check pavement"); }
-      else if (isNum(feels) && feels >= 27) comfort *= 0.85;
+      else if (isNum(feels) && feels >= 27) { comfort *= 0.85; flags.push("warm (feels " + Math.round(feels) + "°)"); }
       if (isNum(feels) && feels <= 2) { comfort *= 0.85; flags.push("cold"); }
       const lowSun = elevMid < cfg.lowSunDeg && elevMid > -1;
       let terrain = 1;
@@ -264,6 +265,8 @@ function analyse(models, nowLocal, cfg = CONFIG) {
     const pair = pickPair(amLive.length ? amLive : am, pmLive.length ? pmLive : pm);
     if (pair) { walk1 = pair.a; walk2 = pair.b; }
     else { walk1 = bestOf(amLive.length ? amLive : am); walk2 = bestOf(pmLive.length ? pmLive : pm); }
+    if (walk1) walk1.why = explainPick(walk1, am, cfg);
+    if (walk2) walk2.why = explainPick(walk2, pm, cfg);
     const chosen = new Set([walk1, walk2].filter(Boolean).map(s => s.h));
     const alts = live.filter(s => !chosen.has(s.h) && s.score > 0)
       .sort((x, y) => y.score - x.score).slice(0, 3).sort((x, y) => x.t0 - y.t0);
@@ -284,6 +287,29 @@ function analyse(models, nowLocal, cfg = CONFIG) {
     };
   });
   return { days, offsetMs };
+}
+
+/* One-line reason why a walk was chosen over the strongest other hour in the same half of the day. */
+function explainPick(c, half, cfg = CONFIG) {
+  const rivals = half.filter(s => s !== c && s.score > 0 && (c.passed || !s.passed));
+  const r = rivals.reduce((m, s) => (!m || s.score > m.score ? s : m), null);
+  if (!r) return "Only usable window in this part of the day.";
+  const R = hhmm(r.t0);
+  if (r.score > c.score + 1e-6) return `${R} scores higher but is less than ${cfg.minGapHours} h from the other walk.`;
+  const cat = x => x.replace(/[\d%°()]+/g, "").split(":")[0].trim();
+  const pros = [], cons = [];
+  const eff = s => s.comfort * (s.lowSun ? 0.65 : 1);
+  if (eff(c) > eff(r) + 0.01) {
+    const f = r.flags.find(x => !c.flags.some(y => cat(y) === cat(x)));
+    pros.push(f ? `${f.split(":")[0]} there` : "less comfortable conditions there");
+  }
+  const ds = (c.sunMean ?? 0) - (r.sunMean ?? 0);
+  if (ds >= 0.03) pros.push("more sun expected"); else if (ds <= -0.03) cons.push("slightly more sun");
+  const da = (r.spread ?? 0) - (c.spread ?? 0);
+  if (da >= 0.05) pros.push("better model agreement"); else if (da <= -0.05) cons.push("better model agreement");
+  let line = `Chosen over ${R}` + (pros.length ? ` (${pros.join(", ")})` : " on combined score");
+  if (cons.length) line += `, although ${R} has ${cons.join(" and ")}`;
+  return line + (c.score - r.score < 0.04 ? ". Close call, either works." : ".");
 }
 
 function quality(s) {
@@ -381,6 +407,7 @@ function walkCard(label, s, isTop, models) {
     <div class="models">Sun score: ${perModel}</div>
     <div class="metrics">☁️ ${r0(s.cc)}% (low ${r0(s.ccLow)}%) · 🌡️ ${r0(s.temp)}° (feels ${r0(s.feels)}°)<br>💨 ${r0(s.wind)} km/h, gusts ${r0(s.gust)} · 🌧️ ${isNum(s.prob) ? r0(s.prob) + "%" : (isNum(s.precip) ? s.precip.toFixed(1) + " mm" : "–")}</div>
     ${s.flags.length ? `<div class="flag">⚠︎ ${esc(s.flags.join(" · "))}</div>` : ""}
+    ${s.why ? `<div class="why">${esc(s.why)}</div>` : ""}
   </div>`;
 }
 
