@@ -289,27 +289,24 @@ function analyse(models, nowLocal, cfg = CONFIG) {
   return { days, offsetMs };
 }
 
-/* One-line reason why a walk was chosen over the strongest other hour in the same half of the day. */
+/* One-line, conclusion-first reason why a walk beat the strongest other hour in the same half of the day. */
 function explainPick(c, half, cfg = CONFIG) {
   const rivals = half.filter(s => s !== c && s.score > 0 && (c.passed || !s.passed));
   const r = rivals.reduce((m, s) => (!m || s.score > m.score ? s : m), null);
   if (!r) return "Only usable window in this part of the day.";
-  const R = hhmm(r.t0);
+  const R = hhmm(r.t0), pc = v => Math.round(v * 100) + "%";
   if (r.score > c.score + 1e-6) return `${R} scores higher but is less than ${cfg.minGapHours} h from the other walk.`;
+  const close = c.score - r.score < 0.04 ? " Close call, either works." : "";
   const cat = x => x.replace(/[\d%°()]+/g, "").split(":")[0].trim();
-  const pros = [], cons = [];
   const eff = s => s.comfort * (s.lowSun ? 0.65 : 1);
+  const lo = s => { const v = s.per.map(p => p.sun).filter(isNum); return v.length ? Math.min(...v) : 0; };
   if (eff(c) > eff(r) + 0.01) {
     const f = r.flags.find(x => !c.flags.some(y => cat(y) === cat(x)));
-    pros.push(f ? `${f.split(":")[0]} there` : "less comfortable conditions there");
+    if (f) return `${R} has ${f.split(":")[0]}` + ((r.sunMean ?? 0) > (c.sunMean ?? 0) ? ", otherwise it would be slightly sunnier." : ".") + close;
   }
-  const ds = (c.sunMean ?? 0) - (r.sunMean ?? 0);
-  if (ds >= 0.03) pros.push("more sun expected"); else if (ds <= -0.03) cons.push("slightly more sun");
-  const da = (r.spread ?? 0) - (c.spread ?? 0);
-  if (da >= 0.05) pros.push("better model agreement"); else if (da <= -0.05) cons.push("better model agreement");
-  let line = `Chosen over ${R}` + (pros.length ? ` (${pros.join(", ")})` : " on combined score");
-  if (cons.length) line += `, although ${R} has ${cons.join(" and ")}`;
-  return line + (c.score - r.score < 0.04 ? ". Close call, either works." : ".");
+  if (lo(c) >= lo(r) + 0.03) return `Sunnier than ${R} even by the more cautious model (${pc(lo(c))} vs ${pc(lo(r))}).` + close;
+  if ((c.sunMean ?? 0) > (r.sunMean ?? 0) + 0.02) return `More sun on average than ${R} (${pc(c.sunMean)} vs ${pc(r.sunMean)}), but the models are less sure.` + close;
+  return `Slightly better overall than ${R}.` + close;
 }
 
 function quality(s) {
