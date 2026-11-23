@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lila's Sunny Walks</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Lila Walks">
+<meta name="theme-color" content="#FFF8EC">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-512.png">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+:root{
+  --bg:#FFF8EC; --card:#FFFFFF; --ink:#2B2418; --muted:#6B5E48; --soft:#F1E7D3;
+  --sun:#F5B300; --maybe:#FBE3A0; --no:#D8D3C8; --night:#ECE4D3;
+  --warn-bg:#FDE8D8; --warn:#9A3412; --rain:#2563EB;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#17150F; --card:#221F17; --ink:#F4ECDC; --muted:#B3A78F; --soft:#2E2A20;
+    --maybe:#6B5A1E; --no:#4A463E; --night:#25221A; --warn-bg:#4A2414; --warn:#FDBA8C; --rain:#60A5FA; }
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);
+  font:16px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+button{font:inherit;color:inherit;cursor:pointer}
+.wrap{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;gap:18px;
+  padding:calc(env(safe-area-inset-top) + 20px) calc(env(safe-area-inset-right) + 20px)
+          calc(env(safe-area-inset-bottom) + 24px) calc(env(safe-area-inset-left) + 20px)}
+.top{display:flex;align-items:center;justify-content:space-between}
+.seg{display:flex;background:var(--soft);border-radius:999px;padding:4px;gap:4px}
+.seg button{border:0;border-radius:999px;padding:10px 18px;background:transparent;color:var(--muted);font-weight:500;font-size:15px}
+.seg button.on{background:var(--ink);color:var(--bg);font-weight:600}
+.round{width:44px;height:44px;border:0;border-radius:999px;background:var(--soft);display:flex;align-items:center;justify-content:center}
+.round svg{stroke:var(--ink)}
+.spin svg{animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+.note{font-size:13px;color:var(--warn);background:var(--warn-bg);border-radius:12px;padding:8px 12px}
+.card{width:100%;text-align:left;border:0;background:var(--card);border-radius:24px;padding:22px 22px 20px;
+  display:flex;flex-direction:column;gap:10px}
+.card.best{box-shadow:0 0 0 2px var(--sun) inset}
+.card.done{opacity:.45}
+.lbl{font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.time{font-size:44px;font-weight:700;letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums}
+.time.none{color:var(--muted)}
+.status{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.st{display:flex;align-items:center;gap:8px;font-weight:500}
+.chip{font-size:13px;font-weight:600;color:var(--warn);background:var(--warn-bg);border-radius:999px;padding:5px 10px}
+.tl{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+.cells{display:flex;gap:3px}
+.cell{flex:1;height:40px;border-radius:6px;position:relative}
+.cell.pick{box-shadow:0 0 0 2px var(--ink)}
+.cell i{position:absolute;top:5px;right:5px;width:6px;height:6px;border-radius:999px;background:var(--rain)}
+.ends{display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
+.legend{display:flex;justify-content:center;gap:16px;font-size:12px;color:var(--muted)}
+.legend span{display:flex;align-items:center;gap:6px}
+.legend b{width:10px;height:10px;border-radius:3px;display:inline-block}
+.foot{margin-top:auto;text-align:center;font-size:15px;color:var(--muted);display:flex;flex-direction:column;gap:6px}
+.foot small{font-size:11px}
+.foot a{color:inherit}
+.loading{padding:80px 0;text-align:center;color:var(--muted)}
+/* details sheet */
+.veil{position:fixed;inset:0;background:rgba(20,16,10,.4);display:none;align-items:flex-end;justify-content:center;z-index:9}
+.veil.open{display:flex}
+.sheet{width:100%;max-width:480px;background:var(--bg);border-radius:28px 28px 0 0;
+  padding:12px 22px calc(env(safe-area-inset-bottom) + 28px);display:flex;flex-direction:column;gap:18px}
+.grab{align-self:center;width:40px;height:5px;border-radius:999px;background:var(--no)}
+.sh{display:flex;align-items:flex-start;justify-content:space-between}
+.sh .time{font-size:32px}
+.why{margin:0;line-height:1.45}
+.bar{display:flex;align-items:center;gap:12px;font-size:14px}
+.bar span:first-child{width:40px;color:var(--muted)}
+.bar .track{flex:1;height:10px;border-radius:999px;background:var(--soft)}
+.bar .fill{height:10px;border-radius:999px;background:var(--sun)}
+.bar span:last-child{width:44px;text-align:right;font-weight:600}
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.tile{background:var(--card);border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:4px}
+.tile small{font-size:12px;color:var(--muted)}
+.tile b{font-size:18px;font-weight:600}
+.tile.warn{background:var(--warn-bg)}.tile.warn small,.tile.warn b{color:var(--warn)}
+.sheet a{color:var(--ink);font-weight:500;font-size:15px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="seg" id="tabs"></div>
+    <button class="round" id="refresh" aria-label="Refresh">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>
+    </button>
+  </div>
+  <div id="note"></div>
+  <div id="app"><div class="loading">Checking the sky…</div></div>
+</div>
+<div class="veil" id="veil"><div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Walk details"></div></div>
+
+<script id="core">
+/* ================== SETTINGS (edit here) ================== */
+const CONFIG = {
+  lat: 37.03, lon: 27.45, tz: "Europe/Istanbul", place: "Bodrum",
+  days: 2,
+  cloudIdeal: 15,        // % total cloud at or below which the sky counts as fully clear
+  lowSunDeg: 8,          // sun elevation below this: hills/buildings may block the sun
+  minGapHours: 4,        // minimum gap between the start of walk 1 and walk 2
+  refreshAfterMin: 45,   // re-fetch when the app is reopened after this many minutes
+  // Ordered candidates: the first ID that returns usable data is used.
+  // Open-Meteo is moving DWD models to new IDs around 30 Nov 2026; the fallbacks cover that.
+  models: [
+    { key: "icon",  name: "ICON-EU", candidates: ["icon_eu", "dwd_icon_eu", "dwd_icon_eu_native", "icon_seamless"] },
+    { key: "ecmwf", name: "ECMWF",   candidates: ["ecmwf_ifs", "ecmwf_ifs025"] }
+  ]
+};
+const HOURLY = ["temperature_2m","apparent_temperature","precipitation","precipitation_probability",
+  "weather_code","cloud_cover","cloud_cover_low","cloud_cover_mid","cloud_cover_high",
+  "sunshine_duration","direct_radiation","wind_speed_10m","wind_gusts_10m"];
+
+/* ================== helpers ================== */
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const isNum = v => typeof v === "number" && isFinite(v);
+const mean = a => { const v = a.filter(isNum); return v.length ? v.reduce((s, x) => s + x, 0) / v.length : null; };
+const maxN = a => { const v = a.filter(isNum); return v.length ? Math.max(...v) : null; };
+// Local wall-clock strings ("2026-11-20T09:00") are handled as UTC-based ms so device timezone never matters.
+const parseLocal = s => { const [d, t = "00:00"] = s.split("T"); const [Y, M, D] = d.split("-").map(Number);
+  const [h, m] = t.split(":").map(Number); return Date.UTC(Y, M - 1, D, h, m); };
+const hhmm = ms => { const d = new Date(ms); return String(d.getUTCHours()).padStart(2, "0") + ":" + String(d.getUTCMinutes()).padStart(2, "0"); };
+const dateKey = ms => new Date(ms).toISOString().slice(0, 10);
+
+/* Solar elevation in degrees (NOAA-style approximation, accurate to ~0.1°). */
+function solarElevation(utcMs, lat, lon) {
+  const rad = Math.PI / 180, d = (utcMs - 946728000000) / 864e5;
+  const g = (357.529 + 0.98560028 * d) * rad, q = 280.459 + 0.98564736 * d;
+  const L = (q + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g)) * rad;
+  const e = (23.439 - 0.00000036 * d) * rad;
+  const ra = Math.atan2(Math.cos(e) * Math.sin(L), Math.cos(L));
+  const dec = Math.asin(Math.sin(e) * Math.sin(L));
+  const gmst = (18.697374558 + 24.06570982441908 * d) % 24;
+  const ha = ((gmst * 15 + lon) * rad) - ra;
+  return Math.asin(Math.sin(lat * rad) * Math.sin(dec) + Math.cos(lat * rad) * Math.cos(dec) * Math.cos(ha)) / rad;
+}
+/* Clear-sky direct radiation on a horizontal surface (Meinel model), W/m². */
+function clearSkyDirect(elevDeg) {
+  if (elevDeg <= 1) return 0;
+  const s = Math.sin(elevDeg * Math.PI / 180);
+  const am = 1 / (s + 0.50572 * Math.pow(elevDeg + 6.07995, -1.6364));
+  return 1361 * Math.pow(0.7, Math.pow(am, 0.678)) * s;
+}
+
+/* ================== analysis ================== */
+/* models: [{key,name,id,data}] where data is a raw Open-Meteo response for one model.
+   Returns per-day analysis. nowLocal: current wall-clock time in the forecast timezone (UTC-based ms). */
+function analyse(models, nowLocal, cfg = CONFIG) {
+  const ref = models[0].data;
+  const offsetMs = (ref.utc_offset_seconds || 0) * 1000;
+  // index hourly arrays by local time
+  const idx = models.map(m => { const map = new Map(); m.data.hourly.time.forEach((t, i) => map.set(parseLocal(t), i)); return map; });
+  const val = (mi, v, t) => { const i = idx[mi].get(t); const a = models[mi].data.hourly[v]; return i === undefined || !a ? null : a[i]; };
+
+  const days = ref.daily.time.slice(0, cfg.days).map((ds, di) => {
+    const sunrise = parseLocal(ref.daily.sunrise[di]), sunset = parseLocal(ref.daily.sunset[di]);
+    const dayStart = parseLocal(ds);
+    const slots = [];
+    for (let h = 0; h < 24; h++) {
+      const t0 = dayStart + h * 3600e3, t1 = t0 + 3600e3;
+      const elevs = [0.125, 0.375, 0.625, 0.875].map(f => solarElevation(t0 + f * 3600e3 - offsetMs, cfg.lat, cfg.lon));
+      const elevMid = solarElevation(t0 + 1800e3 - offsetMs, cfg.lat, cfg.lon);
+      const csDirect = mean(elevs.map(clearSkyDirect));
+      const daylight = t0 >= sunrise - 15 * 60e3 && t1 <= sunset + 15 * 60e3;
+      const per = models.map((m, mi) => {
+        // Open-Meteo: radiation, sunshine, precipitation, gusts = preceding-hour values -> read at t1.
+        // Cloud, temperature = instantaneous -> average t0 and t1.
+        const cc = mean([val(mi, "cloud_cover", t0), val(mi, "cloud_cover", t1)]);
+        const ccLow = mean([val(mi, "cloud_cover_low", t0), val(mi, "cloud_cover_low", t1)]);
+        const sd = val(mi, "sunshine_duration", t1);
+        const dr = val(mi, "direct_radiation", t1);
+        const parts = [];
+        if (isNum(sd)) parts.push([0.35, clamp(sd / 3600)]);
+        if (isNum(dr) && csDirect > 20) parts.push([0.35, clamp(dr / (0.8 * csDirect))]);
+        if (isNum(cc)) parts.push([0.30, clamp(1 - (cc - cfg.cloudIdeal) / 65)]);
+        const w = parts.reduce((s, p) => s + p[0], 0);
+        const sun = w && csDirect > 0 ? parts.reduce((s, p) => s + p[0] * p[1], 0) / w : (csDirect > 0 ? null : 0);
+        return {
+          sun, cc, ccLow, sd, dr,
+          temp: mean([val(mi, "temperature_2m", t0), val(mi, "temperature_2m", t1)]),
+          feels: mean([val(mi, "apparent_temperature", t0), val(mi, "apparent_temperature", t1)]),
+          precip: val(mi, "precipitation", t1),
+          prob: val(mi, "precipitation_probability", t1),
+          code: maxN([val(mi, "weather_code", t0), val(mi, "weather_code", t1)]),
+          wind: mean([val(mi, "wind_speed_10m", t0), val(mi, "wind_speed_10m", t1)]),
+          gust: val(mi, "wind_gusts_10m", t1)
+        };
+      });
+      const suns = per.map(p => p.sun).filter(isNum);
+      const sunMean = suns.length ? mean(suns) : null;
+      const spread = suns.length > 1 ? Math.max(...suns) - Math.min(...suns) : null;
+      const cc = mean(per.map(p => p.cc)), ccLow = mean(per.map(p => p.ccLow));
+      const precip = maxN(per.map(p => p.precip)), prob = maxN(per.map(p => p.prob));
+      const gust = maxN(per.map(p => p.gust)), feels = mean(per.map(p => p.feels)), temp = mean(per.map(p => p.temp));
+      const code = maxN(per.map(p => p.code)), wind = mean(per.map(p => p.wind));
+
+      // comfort / safety multiplier with reasons
+      let comfort = 1; const flags = [];
+      if (isNum(code) && code >= 95) { comfort = 0; flags.push("thunderstorm risk"); }
+      if ((isNum(precip) && precip >= 0.5) || (isNum(prob) && prob >= 60)) { comfort *= 0.15; flags.push("rain likely"); }
+      else if ((isNum(precip) && precip >= 0.1) || (isNum(prob) && prob >= 35)) { comfort *= 0.5; flags.push("showers possible"); }
+      else if (isNum(prob) && prob >= 20) { comfort *= 0.85; flags.push(Math.round(prob) + "% rain chance"); }
+      if (isNum(gust) && gust >= 65) { comfort = 0; flags.push("dangerous gusts"); }
+      else if (isNum(gust) && gust >= 50) { comfort *= 0.6; flags.push("strong gusts"); }
+      else if (isNum(gust) && gust >= 40) { comfort *= 0.9; flags.push("gusts to " + Math.round(gust) + " km/h"); }
+      if (isNum(feels) && feels >= 34) { comfort = 0; flags.push("too hot for Lila"); }
+      else if (isNum(feels) && feels >= 30) { comfort *= 0.6; flags.push("hot: check pavement"); }
+      else if (isNum(feels) && feels >= 27) { comfort *= 0.85; flags.push("warm (feels " + Math.round(feels) + "°)"); }
+      if (isNum(feels) && feels <= 2) { comfort *= 0.85; flags.push("cold"); }
+      const lowSun = elevMid < cfg.lowSunDeg && elevMid > -1;
+      let terrain = 1;
+      if (lowSun) { terrain = 0.65; flags.push("low sun: may be blocked by hills/buildings"); }
+
+      // Rank on a conservative sun estimate: disagreement between models costs points.
+      const conservative = sunMean === null ? 0 : sunMean - 0.3 * (spread ?? 0.33);
+      const score = daylight ? clamp(conservative) * comfort * terrain : 0;
+      const agree = spread === null ? "single" : spread < 0.15 ? "hi" : spread < 0.35 ? "md" : "lo";
+      slots.push({ t0, t1, h, daylight, elevMid, lowSun, per, sunMean, spread, agree, cc, ccLow, precip, prob, gust,
+        feels, temp, wind, code, comfort, flags, score, passed: t1 - 30 * 60e3 <= nowLocal });
+    }
+
+    // Solar noon splits the day into a morning and an afternoon half.
+    let solarNoon = dayStart + 12 * 3600e3, best = -99;
+    for (let m = 540; m <= 960; m += 2) {
+      const t = dayStart + m * 60e3, e = solarElevation(t - offsetMs, cfg.lat, cfg.lon);
+      if (e > best) { best = e; solarNoon = t; }
+    }
+    const cands = slots.filter(s => s.daylight);
+    const live = cands.filter(s => !s.passed);
+    const am = cands.filter(s => s.t0 + 1800e3 < solarNoon), pm = cands.filter(s => s.t0 + 1800e3 >= solarNoon);
+    const amLive = am.filter(s => !s.passed), pmLive = pm.filter(s => !s.passed);
+    const gap = cfg.minGapHours * 3600e3;
+    const pickPair = (A, B) => {
+      let bestPair = null;
+      for (const a of A) for (const b of B) {
+        if (b.t0 - a.t0 < gap) continue;
+        const v = a.score + b.score;
+        if (!bestPair || v > bestPair.v + 1e-9) bestPair = { a, b, v };
+      }
+      return bestPair;
+    };
+    const bestOf = A => A.reduce((m, s) => (!m || s.score > m.score ? s : m), null);
+    // Pair from remaining slots; a half that has already passed keeps its (passed) best for reference.
+    let walk1, walk2;
+    const pair = pickPair(amLive.length ? amLive : am, pmLive.length ? pmLive : pm);
+    if (pair) { walk1 = pair.a; walk2 = pair.b; }
+    else { walk1 = bestOf(amLive.length ? amLive : am); walk2 = bestOf(pmLive.length ? pmLive : pm); }
+    if (walk1) walk1.why = explainPick(walk1, am, cfg);
+    if (walk2) walk2.why = explainPick(walk2, pm, cfg);
+    // Keep "any time" ranges at least an hour clear of the other walk.
+    if (walk1 && walk1.range && walk2 && hourState(walk2) !== "no") walk1.range[1] = Math.min(walk1.range[1], walk2.t0 - 3600e3);
+    if (walk2 && walk2.range && walk1 && hourState(walk1) !== "no") walk2.range[0] = Math.max(walk2.range[0], walk1.t1 + 3600e3);
+    [walk1, walk2].forEach(w => {
+      if (!w || !w.range) return;
+      if (w.range[1] - w.range[0] <= 3600e3) { delete w.range; w.why = "About as good as the hours next to it; either works."; }
+      else w.why = `Any time ${hhmm(w.range[0])}–${hhmm(w.range[1])} looks about equally good.`;
+    });
+    const chosen = new Set([walk1, walk2].filter(Boolean).map(s => s.h));
+    // Hours named in a why-line come first, then the best remaining hours.
+    const named = [walk1, walk2].map(w => w && w.rival).filter(s => s && !s.passed && !chosen.has(s.h));
+    const rest = live.filter(s => !chosen.has(s.h) && s.score > 0 && !named.includes(s)).sort((x, y) => y.score - x.score);
+    const alts = [...new Set(named), ...rest].slice(0, 3).sort((x, y) => x.t0 - y.t0);
+
+    // Daily facts
+    const dl = cands;
+    const sunHours = models.map((m, mi) => {
+      const v = dl.map(s => s.per[mi].sd).filter(isNum);
+      return v.length ? v.reduce((a, b) => a + b, 0) / 3600 : null;
+    });
+    const allT = slots.map(s => s.temp).filter(isNum);
+    return {
+      date: ds, sunrise, sunset, slots, walk1, walk2, alts, solarNoon,
+      tmin: allT.length ? Math.min(...allT) : null, tmax: allT.length ? Math.max(...allT) : null,
+      gustMax: maxN(dl.map(s => s.gust)), probMax: maxN(dl.map(s => s.prob)),
+      precipSum: dl.reduce((a, s) => a + (isNum(s.precip) ? s.precip : 0), 0),
+      sunHours, dayStart
+    };
+  });
+  return { days, offsetMs };
+}
+
+/* One-line, conclusion-first reason why a walk beat the strongest other hour in the same half of the day.
+   Sets c.rival so the compared hour can be listed under Alternatives. */
+function explainPick(c, half, cfg = CONFIG) {
+  const pool = half.filter(s => s.score > 0 && (c.passed || !s.passed));
+  const rivals = pool.filter(s => s !== c);
+  const r = rivals.reduce((m, s) => (!m || s.score > m.score ? s : m), null);
+  if (!r) return "Only usable window in this part of the day.";
+  const R = hhmm(r.t0), pc = v => Math.round(v * 100) + "%";
+  if (r.score > c.score + 1e-6) { c.rival = r; return `${R} scores higher but is less than ${cfg.minGapHours} h from the other walk.`; }
+  const cat = x => x.replace(/[\d%°()]+/g, "").split(":")[0].trim();
+  const eff = s => s.comfort * (s.lowSun ? 0.65 : 1);
+  const lo = s => { const v = s.per.map(p => p.sun).filter(isNum); return v.length ? Math.min(...v) : 0; };
+  const TIE = 0.03;
+  if (eff(c) > eff(r) + 0.01) {
+    const f = r.flags.find(x => !c.flags.some(y => cat(y) === cat(x)));
+    if (f) { c.rival = r; return `${R} has ${f.split(":")[0]}` + ((r.sunMean ?? 0) > (c.sunMean ?? 0) ? ", otherwise it would be slightly sunnier." : ".") + (c.score - r.score < TIE ? " Close call, either works." : ""); }
+  }
+  if (c.score - r.score < TIE) {
+    // Effectively tied: report the contiguous range of equally good hours around the pick.
+    const ok = s => s && s.score >= c.score - TIE && pool.includes(s);
+    const byH = new Map(half.map(s => [s.h, s]));
+    let a = c.h, b = c.h;
+    while (ok(byH.get(a - 1))) a--;
+    while (ok(byH.get(b + 1))) b++;
+    if (b > a) { c.range = [byH.get(a).t0, byH.get(b).t1]; return `Any time ${hhmm(byH.get(a).t0)}–${hhmm(byH.get(b).t1)} looks about equally good.`; }
+    c.rival = r; return `Practically tied with ${R}; either works.`;
+  }
+  c.rival = r;
+  if (lo(c) >= lo(r) + 0.03) return `Sunnier than ${R}, the next best hour (${pc(lo(c))} vs ${pc(lo(r))} sun).`;
+  if ((c.sunMean ?? 0) > (r.sunMean ?? 0) + 0.02) return `Probably sunnier than ${R}, but less certain.`;
+  if ((r.spread ?? 0) - (c.spread ?? 0) >= 0.05) return `About as sunny as ${R}, but more certain.`;
+  return `Slightly better overall than ${R}.`;
+}
+
+/* Hour state for the UI. Each model votes "sunny" at >= 55% sun; both = sun, one = maybe, none = no.
+   Low sun drops one level; rain likely or an unsafe hour is always "no". */
+function hourState(s) {
+  if (!s.daylight) return "night";
+  if (s.comfort === 0 || s.flags.includes("rain likely")) return "no";
+  const votes = s.per.filter(p => isNum(p.sun) && p.sun >= 0.55).length;
+  const n = s.per.filter(p => isNum(p.sun)).length;
+  let lvl = n === 0 ? 0 : votes === n ? 2 : votes > 0 ? 1 : 0;
+  if (s.lowSun) lvl = Math.max(0, lvl - 1);
+  return ["no", "maybe", "sun"][lvl];
+}
+const isRainy = s => (isNum(s.prob) && s.prob >= 35) || (isNum(s.precip) && s.precip >= 0.1);
+/* The single most important warning, as one word, or "". */
+function chip(s) {
+  const f = s.flags.join("|");
+  if (/thunder/.test(f)) return "Storms";
+  if (/too hot/.test(f)) return "Too hot";
+  if (/dangerous gusts|strong gusts/.test(f)) return "Windy";
+  if (/hot:/.test(f)) return "Hot";
+  if (/gusts to/.test(f)) return "Gusty";
+  if (/showers|rain chance/.test(f)) return "Showers";
+  if (/warm/.test(f)) return "Warm";
+  if (/cold/.test(f)) return "Cold";
+  return "";
+}
+
+function quality(s) {
+  if (!s || s.sunMean === null) return "No data";
+  const v = s.sunMean;
+  if (v >= 0.55 && isNum(s.cc) && s.cc > 40) return isNum(s.ccLow) && s.ccLow < 20 ? "Sun through high cloud" : "Sun, broken cloud";
+  return v >= 0.8 ? "Full sun" : v >= 0.55 ? "Mostly sunny" : v >= 0.3 ? "Partly sunny" : v >= 0.1 ? "Mostly cloudy" : "No direct sun";
+}
+const AGREE_TXT = { hi: ["hi", "Models agree"], md: ["md", "Some disagreement"], lo: ["lo", "Models disagree"], single: ["md", "One model only"] };
+
+if (typeof module !== "undefined") module.exports = { analyse, solarElevation, clearSkyDirect, CONFIG, HOURLY, quality, hourState, chip, explainPick };
+</script>
+
+<script>
+/* ================== data fetching ================== */
+const CACHE_KEY = "lila-walks-v1";
+let state = { models: null, fetchedAt: 0, dayIndex: 0, errors: [], loading: false };
+
+function url(id) {
+  const p = new URLSearchParams({
+    latitude: CONFIG.lat, longitude: CONFIG.lon, timezone: CONFIG.tz,
+    hourly: HOURLY.join(","), daily: "sunrise,sunset", forecast_days: String(CONFIG.days + 1),
+    wind_speed_unit: "kmh", models: id
+  });
+  return "https://api.open-meteo.com/v1/forecast?" + p;
+}
+function usable(data) {
+  const cc = data && data.hourly && data.hourly.cloud_cover;
+  if (!cc || !data.daily || !data.daily.sunrise) return false;
+  return cc.slice(0, 48).filter(v => typeof v === "number").length >= 36;
+}
+async function fetchModel(m) {
+  let lastErr = "";
+  for (const id of m.candidates) {
+    try {
+      const r = await fetch(url(id), { cache: "no-store" });
+      const j = await r.json();
+      if (!r.ok || j.error) { lastErr = id + ": " + (j.reason || r.status); continue; }
+      if (!usable(j)) { lastErr = id + ": no data"; continue; }
+      return { key: m.key, name: m.name, id, data: j };
+    } catch (e) { lastErr = id + ": " + e.message; }
+  }
+  throw new Error(m.name + " unavailable (" + lastErr + ")");
+}
+async function load(force) {
+  const age = (Date.now() - state.fetchedAt) / 60000;
+  if (!force && state.models && age < CONFIG.refreshAfterMin) return render();
+  state.loading = true; render();
+  const res = await Promise.allSettled(CONFIG.models.map(fetchModel));
+  const ok = res.filter(r => r.status === "fulfilled").map(r => r.value);
+  const errors = res.filter(r => r.status === "rejected").map(r => r.reason.message);
+  if (ok.length) {
+    state.models = ok; state.fetchedAt = Date.now(); state.errors = errors;
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify({ models: ok, fetchedAt: state.fetchedAt, errors })); } catch (e) {}
+  } else {
+    state.errors = errors;
+  }
+  state.loading = false; render();
+}
+function restore() {
+  try {
+    const c = JSON.parse(localStorage.getItem(CACHE_KEY) || "null");
+    if (c && c.models) { state.models = c.models; state.fetchedAt = c.fetchedAt; state.errors = c.errors || []; }
+  } catch (e) {}
+}
+
+/* ================== rendering ================== */
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const r0 = v => (typeof v === "number" ? Math.round(v) : "–");
+const COLOR = { sun: "var(--sun)", maybe: "var(--maybe)", no: "var(--no)", night: "var(--night)" };
+const SUN_ICON = fill => `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E0A100" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.5" fill="${fill}" stroke="none"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>`;
+const CLOUD_ICON = rain => `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${rain ? "var(--rain)" : "var(--muted)"}" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M7 15a4 4 0 0 1 .5-8 5 5 0 0 1 9.6 1.5A3.5 3.5 0 0 1 17 15H7z"/>${rain ? '<path d="M9 18l-1 3M13 18l-1 3M17 18l-1 3"/>' : ""}</svg>`;
+let current = null; // analysis of the shown day, for the details sheet
+
+function statusOf(s, half) {
+  const st = hourState(s);
+  if (st === "sun") return { text: "Sunny", icon: SUN_ICON("var(--sun)"), none: false };
+  if (st === "maybe") return { text: "Maybe sunny", icon: SUN_ICON("var(--maybe)"), none: false };
+  // No sun in this half: explain with the rain pattern if there is one.
+  const wet = (half || [s]).filter(x => x.flags.includes("rain likely") || isRainy(x));
+  if (wet.length) {
+    const last = Math.max(...wet.map(x => x.t1)), end = Math.max(...(half || [s]).map(x => x.t1));
+    return { text: last < end ? `Rain until about ${hhmm(last)}` : "Rain likely", icon: CLOUD_ICON(true), none: true };
+  }
+  return { text: s.comfort === 0 ? "Not safe to walk" : "Cloudy", icon: CLOUD_ICON(false), none: true };
+}
+
+function card(label, s, key, isBest, half) {
+  if (!s) return `<div class="card"><div class="lbl">${label}</div><div class="time none">—</div></div>`;
+  const st = statusOf(s, half);
+  const range = s.range && !s.passed;
+  const time = st.none ? "No sun" : range ? `${hhmm(s.range[0])}–${hhmm(s.range[1])}` : `${hhmm(s.t0)}–${hhmm(s.t1)}`;
+  const sub = s.passed ? " · done" : range && !st.none ? " · any time" : "";
+  const c = st.none ? "" : chip(s);
+  return `<button class="card ${isBest && !s.passed && !st.none ? "best" : ""} ${s.passed ? "done" : ""}" data-walk="${key}" aria-label="${label} walk details">
+    <div class="lbl">${label}${sub}</div>
+    <div class="time ${st.none ? "none" : ""}">${time}</div>
+    <div class="status"><div class="st">${st.icon}${st.text}</div>${c ? `<div class="chip">${c}</div>` : ""}</div>
+  </button>`;
+}
+
+function render() {
+  $("refresh").classList.toggle("spin", state.loading);
+  if (!state.models) {
+    $("app").innerHTML = state.loading ? `<div class="loading">Checking the sky…</div>`
+      : `<div class="note">Couldn't load the forecast. Check your connection and tap refresh.</div>`;
+    return;
+  }
+  const off = (state.models[0].data.utc_offset_seconds || 0) * 1000;
+  const A = analyse(state.models, Date.now() + off);
+  const d = A.days[state.dayIndex] || A.days[0];
+  current = d;
+
+  $("tabs").innerHTML = ["Today", "Tomorrow"].map((t, i) =>
+    `<button class="${i === state.dayIndex ? "on" : ""}" data-i="${i}">${t}</button>`).join("");
+  $("tabs").querySelectorAll("button").forEach(b => b.onclick = () => { state.dayIndex = +b.dataset.i; render(); });
+
+  // Only speak up when something is wrong: stale data, or a model missing.
+  const ageH = (Date.now() - state.fetchedAt) / 3600e3;
+  const notes = [];
+  if (ageH > 3) notes.push(`Forecast is ${Math.round(ageH)} h old. Tap refresh.`);
+  if (state.models.length < CONFIG.models.length) notes.push("One forecast model is unavailable, so treat today's picks with more caution.");
+  $("note").innerHTML = notes.length ? `<div class="note">${esc(notes.join(" "))}</div>` : "";
+
+  const w = [d.walk1, d.walk2];
+  const ahead = d.slots.filter(x => x.daylight && !x.passed);
+  const halves = [ahead.filter(x => x.t0 + 1800e3 < d.solarNoon), ahead.filter(x => x.t0 + 1800e3 >= d.solarNoon)];
+  const live = w.filter(s => s && !s.passed);
+  const best = live.length ? live.reduce((a, b) => (b.score > a.score ? b : a)) : null;
+  const picked = new Set();
+  w.forEach(s => { if (!s || hourState(s) === "no") return;
+    if (s.range && !s.passed) d.slots.forEach(x => { if (x.t0 >= s.range[0] && x.t1 <= s.range[1]) picked.add(x.h); });
+    else picked.add(s.h); });
+
+  const day = d.slots.filter(s => s.daylight);
+  const cells = day.map(s => `<div class="cell ${picked.has(s.h) ? "pick" : ""}" style="background:${COLOR[hourState(s)]}" title="${hhmm(s.t0)}">${isRainy(s) ? "<i></i>" : ""}</div>`).join("");
+  const windAvg = day.map(s => s.wind).filter(isNum);
+  const wind = windAvg.length ? windAvg.reduce((a, b) => a + b, 0) / windAvg.length : null;
+
+  $("app").innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:18px">
+      ${card("Morning", d.walk1, 1, d.walk1 === best, halves[0])}
+      ${card("Afternoon", d.walk2, 2, d.walk2 === best, halves[1])}
+    </div>
+    <div class="tl" style="margin-top:22px">
+      <div class="cells">${cells}</div>
+      <div class="ends"><span>↑ ${hhmm(d.sunrise)}</span><span>↓ ${hhmm(d.sunset)}</span></div>
+      <div class="legend"><span><b style="background:var(--sun)"></b>sunny</span><span><b style="background:var(--maybe)"></b>maybe</span><span><b style="background:var(--no)"></b>no sun</span></div>
+    </div>`;
+  $("app").querySelectorAll("[data-walk]").forEach(b => b.onclick = () => openSheet(+b.dataset.walk));
+
+  let foot = document.querySelector(".foot");
+  if (!foot) { foot = document.createElement("div"); foot.className = "foot"; document.querySelector(".wrap").appendChild(foot); }
+  foot.innerHTML = `<div>${r0(d.tmin)}–${r0(d.tmax)}° · wind ${r0(wind)} km/h</div>
+    <small>Data: <a href="https://open-meteo.com/">Open-Meteo.com</a> (CC BY 4.0)</small>`;
+}
+
+function openSheet(n) {
+  const s = n === 1 ? current.walk1 : current.walk2;
+  if (!s) return;
+  const range = s.range && !s.passed;
+  const suns = s.per.map(p => p.sun).filter(isNum);
+  const sun = suns.length ? Math.min(...suns) : 0;
+  const windy = `https://www.windy.com/${CONFIG.lat.toFixed(2)}/${CONFIG.lon.toFixed(2)}?clouds,${CONFIG.lat.toFixed(2)},${CONFIG.lon.toFixed(2)},11`;
+  $("sheet").innerHTML = `
+    <div class="grab"></div>
+    <div class="sh">
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div class="lbl">${n === 1 ? "Morning" : "Afternoon"} walk</div>
+        <div class="time">${range ? `${hhmm(s.range[0])}–${hhmm(s.range[1])}` : `${hhmm(s.t0)}–${hhmm(s.t1)}`}</div>
+      </div>
+      <button class="round" id="close" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    ${s.why ? `<p class="why">${esc(s.why)}</p>` : ""}
+    <div class="bar"><span>Sun</span><div class="track"><div class="fill" style="width:${Math.round(sun * 100)}%"></div></div><span>${Math.round(sun * 100)}%</span></div>
+    <div class="tiles">
+      <div class="tile"><small>Cloud</small><b>${r0(s.cc)}%</b></div>
+      <div class="tile ${isNum(s.feels) && (s.feels >= 30 || s.feels <= 2) ? "warn" : ""}"><small>Feels</small><b>${r0(s.feels)}°</b></div>
+      <div class="tile ${isNum(s.gust) && s.gust >= 40 ? "warn" : ""}"><small>Gusts</small><b>${r0(s.gust)} km/h</b></div>
+    </div>
+    ${isRainy(s) ? `<div class="note">${isNum(s.prob) ? r0(s.prob) + "% chance of rain" : "Rain possible"}</div>` : ""}
+    <a href="${windy}">Open in Windy</a>`;
+  $("veil").classList.add("open");
+  $("close").onclick = closeSheet;
+}
+function closeSheet() { $("veil").classList.remove("open"); }
+$("veil").onclick = e => { if (e.target === $("veil")) closeSheet(); };
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeSheet(); });
+
+/* ================== boot ================== */
+$("refresh").onclick = () => load(true);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") load(false); });
+setInterval(() => { if (document.visibilityState === "visible" && !$("veil").classList.contains("open")) render(); }, 5 * 60000);
+restore();
+if (state.models) render();
+load(false);
+</script>
+</body>
+</html>
